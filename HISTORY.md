@@ -1,3 +1,7 @@
+0.0.2 / 2014-01-17
+==================
+
+  * Switching component.json to bower.json to avoid deprecation warnings
 
 0.0.1 / 2012-12-06 
 ==================
