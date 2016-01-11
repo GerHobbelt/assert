@@ -169,7 +169,16 @@ assert.throws(makeBlock(a.deepEqual, Object_keys(a1), Object_keys(a2)),
               a.AssertionError);
 assert.doesNotThrow(makeBlock(a.deepEqual, a1, a2));
 
-// having an identical prototype property
+// a function and and object match like objects, two functions don't
+var fn1 = Function();
+fn1.a = 4;
+var fn2 = Function();
+fn2.a = 4;
+assert.doesNotThrow(makeBlock(a.deepEqual, fn1, {a: 4}));
+assert.doesNotThrow(makeBlock(a.deepEqual, {a: 4}, fn2));
+assert.throws(makeBlock(a.deepEqual, fn1, fn2), a.AssertionError);
+
+// having different prototypes
 var nbRoot = {
   toString: function() { return this.first + ' ' + this.last; }
 };
@@ -186,16 +195,11 @@ function nameBuilder2(first, last) {
   this.last = last;
   return this;
 }
-nameBuilder2.prototype = nbRoot;
+nameBuilder2.prototype = Object;
 
 var nb1 = new nameBuilder('Ryan', 'Dahl');
 var nb2 = new nameBuilder2('Ryan', 'Dahl');
-
 assert.doesNotThrow(makeBlock(a.deepEqual, nb1, nb2));
-
-nameBuilder2.prototype = Object;
-nb2 = new nameBuilder2('Ryan', 'Dahl');
-assert.throws(makeBlock(a.deepEqual, nb1, nb2), a.AssertionError);
 
 // String literal + object blew up my implementation...
 assert.throws(makeBlock(a.deepEqual, 'a', {}), a.AssertionError);
