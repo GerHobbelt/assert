@@ -1,9 +1,6 @@
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
-// THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
-//
 // Originally from narwhal.js (http://narwhaljs.org)
-// Copyright (c) 2009 Thomas Robinson <280north.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the 'Software'), to
@@ -35,14 +32,6 @@
 'use strict';
 
 // UTILITY
-
-// Object.create compatible in IE
-var create = Object.create || function(p) {
-  if (!p) throw Error('no type');
-  function f() {};
-  f.prototype = p;
-  return new f();
-};
 
 function arrayToHash(array) {
   var hash = Object.create(null);
@@ -113,10 +102,7 @@ function formatPrimitive(ctx, value) {
     return ctx.stylize(value.toString(), 'symbol');
 }
 
-function formatPrimitiveNoColor(ctx, value) {
-  var str = formatPrimitive(ctx, value);
-  return str;
-}
+var formatPrimitiveNoColor = formatPrimitive;
 
 function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
   var name, str, desc;
@@ -227,7 +213,7 @@ function formatValue(ctx, value, recurseTimes) {
 
   // Some type of object without properties can be shortcutted.
   if (keys.length === 0) {
-    if (typeof value === 'function') {
+    if (isFunction(value)) { // Workaraound for Android Browser
       var fnName = getFunctionName(value);
       var name = fnName ? ': ' + fnName : '';
       return ctx.stylize('[Function' + name + ']', 'special');
@@ -380,6 +366,10 @@ function isError(arg) {
     (getConstructorOf(arg) === Error || arg instanceof Error);
 }
 
+function isFunction(arg) {
+  return typeof arg === 'function' && !(arg instanceof RegExp);
+}
+
 function isObject(arg) {
   return util.isObject(arg);
 }
@@ -408,11 +398,10 @@ function reduceToSingleString(output, base, braces) {
   return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
 }
 
-// UTILITY
 var util = {
   inherits: function(ctor, superCtor) {
     ctor.super_ = superCtor;
-    ctor.prototype = create(superCtor.prototype, {
+    ctor.prototype = Object.create(superCtor.prototype, {
       constructor: {
         value: ctor,
         enumerable: false,
@@ -439,16 +428,13 @@ var util = {
     return arg === void 0;
   },
   isRegExp: function(re) {
-    return util.isObject(re) && getConstructorOf(re) === RegExp;
+    return re instanceof RegExp;
   },
   isObject: function(arg) {
     return typeof arg === 'object' && arg !== null;
   },
   isDate: function(d) {
     return util.isObject(d) && getConstructorOf(d) === Date;
-  },
-  isFunction: function(arg) {
-    return typeof arg === 'function';
   },
   isPrimitive: function(arg) {
     return arg === null ||
@@ -461,45 +447,6 @@ var util = {
 };
 
 var pSlice = Array.prototype.slice;
-
-// From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys
-var Object_keys = typeof Object.keys === 'function' ? Object.keys : (function() {
-  var hasOwnProperty = Object.prototype.hasOwnProperty,
-      hasDontEnumBug = !({ toString: null }).propertyIsEnumerable('toString'),
-      dontEnums = [
-        'toString',
-        'toLocaleString',
-        'valueOf',
-        'hasOwnProperty',
-        'isPrototypeOf',
-        'propertyIsEnumerable',
-        'constructor'
-      ],
-      dontEnumsLength = dontEnums.length;
-
-  return function(obj) {
-    if (typeof obj !== 'object' && (typeof obj !== 'function' || obj === null)) {
-      throw new TypeError('Object.keys called on non-object');
-    }
-
-    var result = [], prop, i;
-
-    for (prop in obj) {
-      if (hasOwnProperty.call(obj, prop)) {
-        result.push(prop);
-      }
-    }
-
-    if (hasDontEnumBug) {
-      for (i = 0; i < dontEnumsLength; i++) {
-        if (hasOwnProperty.call(obj, dontEnums[i])) {
-          result.push(dontEnums[i]);
-        }
-      }
-    }
-    return result;
-  };
-})();
 
 // 1. The assert module provides functions that throw
 // AssertionError's when particular conditions are not met. The
@@ -775,7 +722,7 @@ function _tryBlock(block) {
 function _throws(shouldThrow, block, expected, message) {
   var actual;
 
-  if (typeof block !== 'function') {
+  if (!isFunction(block)) { // Workaraound for Android Browser
     throw new TypeError('"block" argument must be a function');
   }
 
